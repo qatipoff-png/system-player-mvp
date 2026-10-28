@@ -1,28 +1,51 @@
 # SYSTEM Player Dashboard — MVP
 
-A dark RPG-style habit tracker built with Next.js 14, React, TypeScript and Tailwind CSS. Saves progress in browser LocalStorage (single browser/device, no account sync).
+Тёмный RPG-трекер привычек на Next.js 14, React, TypeScript и Tailwind CSS. Игровой прогресс сохраняется в браузере в `localStorage` и пока не синхронизируется между устройствами.
 
-## Run locally
+## Запуск приложения
 
-Requirements: Node.js 18.17+.
+Нужен Node.js 18.17 или новее.
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-Open http://localhost:3000.
+Откройте http://localhost:3000. При первом запуске настройте Supabase по инструкции ниже.
 
-## Included
-- Player profile, level and XP bar. XP required per level: `100 + (level - 1) * 50`.
-- STR / INT / END / DISC stats; each level gives 3 stat points.
-- Daily quests, EXP and Gold rewards, custom quest modal.
-- Reward shop with Gold spending.
-- Activity log and 28-day activity map.
-- LocalStorage persistence and daily date rollover check.
+## Возможности
 
-## Notes / next steps
-- LocalStorage is not a secure or synced database. Clearing browser data resets progress; use Supabase for authentication, cross-device sync and reliable server-side daily resets.
-- MVP daily rollover applies a 10 HP penalty on the next visit after a date change. For production, use a server-side scheduled job and store each day's result in the database.
-- Add sound effects with an opt-in toggle and use a real notification system only after browser permission.
-- `crypto.randomUUID()` is supported in modern browsers.
+- Профиль игрока, уровень и шкала опыта. Опыт для следующего уровня: `100 + (уровень − 1) × 50`.
+- Характеристики STR / INT / END / DISC; за каждый уровень начисляется 3 очка характеристик.
+- Ежедневные квесты, награды EXP и Gold, создание собственных заданий.
+- Магазин наград с оплатой Gold.
+- Журнал событий и карта активности за 28 дней.
+- Сохранение прогресса в `localStorage` и сброс ежедневных заданий при смене даты.
+- Регистрация и вход по email и паролю, подтверждение email, сессия и защита панели входом.
+
+## Настройка Supabase Auth
+
+1. **Создайте проект Supabase.** Зарегистрируйтесь на [supabase.com](https://supabase.com), нажмите **New project**, задайте имя, пароль базы данных и регион. Дождитесь готовности проекта.
+2. **Скопируйте ключи.** В Supabase откройте **Connect** или **Project Settings → API Keys**. Скопируйте Project URL и публичный anon/publishable API key. Не используйте `service_role` или secret key в браузерных переменных `NEXT_PUBLIC_`.
+3. **Создайте локальный файл переменных.** В папке приложения скопируйте `.env.example` в `.env.local` и вставьте свои значения:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://ВАШ-ПРОЕКТ.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=ВАШ_ПУБЛИЧНЫЙ_КЛЮЧ
+   ```
+   Не отправляйте `.env.local` в GitHub. После изменения переменных перезапустите приложение.
+4. **Разрешите адреса для подтверждения email.** В Supabase откройте **Authentication → URL Configuration**. Для разработки установите Site URL `http://localhost:3000` и добавьте этот адрес в Redirect URLs. Добавьте туда и адрес вашего сайта Vercel, например `https://ваш-сайт.vercel.app`. Для рабочего проекта укажите адрес Vercel как Site URL. Адреса Vercel Preview добавляйте, только если планируете тестировать на них вход и подтверждение почты.
+5. **Проверьте локально.** Запустите `pnpm dev`, откройте http://localhost:3000/login и зарегистрируйте тестовый аккаунт. Если Supabase просит подтверждение, откройте письмо и перейдите по ссылке, затем войдите.
+6. **Добавьте переменные в Vercel.** Откройте проект Vercel → **Settings → Environment Variables**. Добавьте `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, вставив значения из Supabase. Выберите Production (и Preview, если нужно), сохраните и заново разверните приложение.
+7. **Проверьте рабочий сайт.** Зарегистрируйте тестовый аккаунт, подтвердите email, войдите, обновите закрытую страницу и выйдите через кнопку в верхней части панели.
+
+## Будущее облачное сохранение и разделение данных
+
+Сейчас вход в аккаунт **не переносит игровой прогресс в облако**. Текущая игра хранится в `localStorage` под одним общим ключом, поэтому аккаунты, которыми пользуются в одном браузере, пока видят один и тот же локальный прогресс. Вход не изолирует локальные сохранения и не синхронизирует их между устройствами.
+
+Файл `supabase/player_progress.sql` — пример будущей таблицы с Row Level Security (RLS), где пользователь может обращаться только к своей записи. SQL создаёт таблицу, но приложение пока не читает и не записывает в неё данные. Для настоящей синхронизации нужно отдельно добавить код загрузки и сохранения, включить правила доступа RLS, а для старого прогресса — продумать явный импорт из `localStorage`. Не удаляйте локальное сохранение до проверки такого переноса.
+
+## Примечания
+
+- Сброс ежедневных заданий сейчас происходит при следующем открытии приложения после смены даты; штраф — 10 HP. Для надёжной серверной обработки понадобится база данных и серверный планировщик.
+- `crypto.randomUUID()` работает в современных браузерах.
+
