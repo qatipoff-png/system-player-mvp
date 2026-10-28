@@ -26,36 +26,46 @@ export default function LoginPage() {
     }
     setBusy(true)
     setMessage('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    })
-    setBusy(false)
-    setMessage(error ? `Не удалось отправить письмо: ${error.message}` : 'Письмо для восстановления отправлено. Проверьте входящие и папку «Спам».')
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
+      setMessage(error ? `Не удалось отправить письмо: ${error.message}` : 'Письмо для восстановления отправлено. Проверьте входящие и папку «Спам».')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Не удалось связаться с Supabase. Проверьте подключение и настройки проекта.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
     setMessage('')
-    const supabase = createClient()
-    const result = mode === 'signin'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-        })
-    setBusy(false)
-    if (result.error) {
-      setMessage(result.error.message)
-      return
+    try {
+      const supabase = createClient()
+      const result = mode === 'signin'
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          })
+      if (result.error) {
+        setMessage(result.error.message)
+        return
+      }
+      if (mode === 'signup' && !result.data.session) {
+        setMessage('Аккаунт создан. Проверьте почту и подтвердите адрес, затем войдите.')
+        return
+      }
+      window.location.assign('/')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Не удалось связаться с Supabase. Проверьте подключение и настройки проекта.')
+    } finally {
+      setBusy(false)
     }
-    if (mode === 'signup' && !result.data.session) {
-      setMessage('Аккаунт создан. Проверьте почту и подтвердите адрес, затем войдите.')
-      return
-    }
-    window.location.assign('/')
   }
 
   return (

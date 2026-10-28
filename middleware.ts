@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) {
     if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname.startsWith('/auth/')) return response
     return NextResponse.redirect(new URL('/login?setup=1', request.url))

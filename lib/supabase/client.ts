@@ -2,7 +2,7 @@ import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) throw new Error('Добавьте переменные Supabase в .env.local')
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error('В Vercel не найдены NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Добавьте их в Environment Variables и заново разверните сайт.')
   return createBrowserClient(url, key)
 }
