@@ -52,6 +52,7 @@ export function generateDailyQuests(level: number, date = todayKey()): Quest[] {
   const pages = targetByLevel(10, 1, level, 40);
   const focusMinutes = targetByLevel(25, 2, level, 60);
   const planningTasks = targetByLevel(3, 1, level, 8);
+  const tidyMinutes = targetByLevel(10, 1, level, 30);
 
   return [
     {
@@ -75,11 +76,41 @@ export function generateDailyQuests(level: number, date = todayKey()): Quest[] {
       difficulty: level,
     },
     {
-      id: `daily-water-${date}`,
-      title: 'Выпить свою норму воды',
-      detail: 'Поддерживай комфортный для себя режим питья',
-      exp: rewardByLevel(15, level, 100),
-      gold: rewardByLevel(10, level, 60),
+      id: `daily-make-bed-${date}`,
+      title: 'Заправить кровать',
+      detail: 'Начни день с небольшого завершённого дела',
+      exp: rewardByLevel(12, level, 100),
+      gold: rewardByLevel(8, level, 60),
+      done: false,
+      date,
+      difficulty: level,
+    },
+    {
+      id: `daily-brush-teeth-morning-${date}`,
+      title: 'Почистить зубы утром',
+      detail: 'Утренняя гигиена',
+      exp: rewardByLevel(8, level, 100),
+      gold: rewardByLevel(5, level, 60),
+      done: false,
+      date,
+      difficulty: level,
+    },
+    {
+      id: `daily-brush-teeth-evening-${date}`,
+      title: 'Почистить зубы вечером',
+      detail: 'Вечерняя гигиена перед сном',
+      exp: rewardByLevel(8, level, 100),
+      gold: rewardByLevel(5, level, 60),
+      done: false,
+      date,
+      difficulty: level,
+    },
+    {
+      id: `daily-tidy-${date}`,
+      title: `Навести порядок · ${tidyMinutes} минут`,
+      detail: 'Убери одну небольшую зону: стол, комнату или вещи',
+      exp: rewardByLevel(12, level, 100),
+      gold: rewardByLevel(8, level, 60),
       done: false,
       date,
       difficulty: level,
@@ -95,6 +126,15 @@ export function generateDailyQuests(level: number, date = todayKey()): Quest[] {
       difficulty: level,
     },
   ];
+}
+
+// Update an existing save without resetting completed quests or daily progress.
+// This also removes the retired water quest from saved history.
+export function refreshDailyQuestSet(state: GameState, date = todayKey()): GameState {
+  const quests = state.quests.filter((quest) => !quest.id.startsWith('daily-water-'));
+  const existingToday = new Set(quests.filter((quest) => quest.date === date).map((quest) => quest.id));
+  const missing = generateDailyQuests(state.level, date).filter((quest) => !existingToday.has(quest.id));
+  return { ...state, quests: [...quests, ...missing] };
 }
 
 const secretQuestTemplates = [

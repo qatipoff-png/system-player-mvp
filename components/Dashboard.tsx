@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, Award, Check, ChevronUp, Coins, Crosshair, Flame, Heart, Plus, Shield, ShoppingBag, Sparkles, Swords, Target, X, Zap, Trophy, CalendarDays, TrendingUp, Crown } from 'lucide-react';
-import { addExp, defaultState, GameState, generateDailyQuests, generateSecretQuest, maxSecretQuestsPerDay, msUntilNextUtc5Midnight, Quest, todayKey, xpNeeded } from '@/lib/game';
+import { addExp, defaultState, GameState, generateDailyQuests, generateSecretQuest, maxSecretQuestsPerDay, msUntilNextUtc5Midnight, Quest, refreshDailyQuestSet, todayKey, xpNeeded } from '@/lib/game';
 import { createClient } from '@/lib/supabase/client';
 
 const titles = (level:number) => level < 3 ? 'Игрок низкой квалификации' : level < 6 ? 'Охотник E-ранга' : level < 10 ? 'Охотник D-ранга' : level < 20 ? 'Охотник C-ранга' : 'Пробуждённый охотник';
@@ -24,16 +24,17 @@ export default function Dashboard(){
     setUserId(user.id);
     const accountKey=`system-player-save:${user.id}`;
     if(row?.progress){
-     setGame(row.progress as GameState);
-     localStorage.setItem(accountKey,JSON.stringify(row.progress));
+     const updated=refreshDailyQuestSet(row.progress as GameState);
+     setGame(updated);
+     localStorage.setItem(accountKey,JSON.stringify(updated));
     }else{
      const accountSave=parseGameState(localStorage.getItem(accountKey));
      if(accountSave){
-      setGame(accountSave);
+      setGame(refreshDailyQuestSet(accountSave));
      }else{
       const legacy=parseGameState(localStorage.getItem('system-player-save'));
       const legacyOwner=localStorage.getItem('system-player-legacy-imported-by');
-      if(legacy && !legacyOwner){setGame(legacy);setPendingImport(true);}
+      if(legacy && !legacyOwner){setGame(refreshDailyQuestSet(legacy));setPendingImport(true);}
       else setGame(defaultState());
      }
     }
