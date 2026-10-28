@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [recovering, setRecovering] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
@@ -14,7 +15,24 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search)
     if (params.get('setup')) setMessage('Сначала добавьте URL и ключ Supabase в .env.local, затем перезапустите приложение.')
     else if (params.get('confirmation')) setMessage('Ссылка подтверждения недействительна или устарела. Попробуйте зарегистрироваться ещё раз.')
+    else if (params.get('recovery') === 'sent') setMessage('Письмо для восстановления отправлено. Проверьте входящие и папку «Спам».')
+    else if (params.get('recovery') === 'failed') setMessage('Не удалось подтвердить ссылку восстановления. Запросите письмо ещё раз.')
   }, [])
+
+  async function sendResetLink() {
+    if (!email.trim()) {
+      setMessage('Сначала введите адрес электронной почты.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    setBusy(false)
+    setMessage(error ? `Не удалось отправить письмо: ${error.message}` : 'Письмо для восстановления отправлено. Проверьте входящие и папку «Спам».')
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,20 +66,21 @@ export default function LoginPage() {
           <div><p className="eyebrow">SYSTEM // PLAYER ACCESS</p><h1 className="text-2xl font-black tracking-widest">ОХОТНИК</h1></div>
         </div>
         <p className="eyebrow">AUTHENTICATION REQUIRED</p>
-        <h2 className="text-xl font-bold mt-2">{mode === 'signin' ? 'Вход в систему' : 'Регистрация охотника'}</h2>
+        <h2 className="text-xl font-bold mt-2">{recovering ? 'Восстановление пароля' : mode === 'signin' ? 'Вход в систему' : 'Регистрация охотника'}</h2>
         <p className="text-sm text-slate-400 mt-2">Ваш игровой прогресс пока хранится только на этом устройстве.</p>
         {message && <p role="status" className="mt-4 border border-cyan-400/30 bg-cyan-950/30 p-3 text-sm text-cyan-100">{message}</p>}
         <form onSubmit={submit} className="mt-5 space-y-4">
           <label className="block text-xs tracking-wider text-slate-400">EMAIL
             <span className="relative block mt-2"><Mail size={16} className="absolute left-3 top-3 text-cyan-500"/><input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-black/40 border border-cyan-900 p-3 pl-10 text-sm outline-none focus:border-cyan-300" placeholder="hunter@example.com"/></span>
           </label>
-          <label className="block text-xs tracking-wider text-slate-400">ПАРОЛЬ
+          {!recovering && <label className="block text-xs tracking-wider text-slate-400">ПАРОЛЬ
             <span className="relative block mt-2"><LockKeyhole size={16} className="absolute left-3 top-3 text-cyan-500"/><input required minLength={8} type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-black/40 border border-cyan-900 p-3 pl-10 text-sm outline-none focus:border-cyan-300" placeholder="Не менее 8 символов"/></span>
-          </label>
-          <button disabled={busy} className="w-full bg-cyan-400 text-slate-950 font-black tracking-widest py-3 hover:bg-cyan-200 disabled:opacity-50">{busy ? 'ПОДОЖДИТЕ…' : mode === 'signin' ? 'ВОЙТИ' : 'СОЗДАТЬ АККАУНТ'}</button>
+          </label>}
+          {recovering ? <button type="button" disabled={busy} onClick={sendResetLink} className="w-full bg-cyan-400 text-slate-950 font-black tracking-widest py-3 hover:bg-cyan-200 disabled:opacity-50">{busy ? 'ОТПРАВКА…' : 'ОТПРАВИТЬ ССЫЛКУ'}</button> : <button disabled={busy} className="w-full bg-cyan-400 text-slate-950 font-black tracking-widest py-3 hover:bg-cyan-200 disabled:opacity-50">{busy ? 'ПОДОЖДИТЕ…' : mode === 'signin' ? 'ВОЙТИ' : 'СОЗДАТЬ АККАУНТ'}</button>}
         </form>
-        <button onClick={()=>{setMode(mode === 'signin' ? 'signup' : 'signin');setMessage('')}} className="w-full mt-4 py-2 text-sm text-cyan-300 hover:text-cyan-100">
-          {mode === 'signin' ? 'Впервые здесь? Создать аккаунт' : 'Уже есть аккаунт? Войти'}
+        {mode === 'signin' && !recovering && <button onClick={()=>{setRecovering(true);setMessage('')}} className="w-full mt-3 py-2 text-sm text-slate-300 hover:text-cyan-100">Забыли пароль?</button>}
+        <button onClick={()=>{if(recovering){setRecovering(false)}else{setMode(mode === 'signin' ? 'signup' : 'signin')}setMessage('')}} className="w-full mt-2 py-2 text-sm text-cyan-300 hover:text-cyan-100">
+          {recovering ? 'Вернуться ко входу' : mode === 'signin' ? 'Впервые здесь? Создать аккаунт' : 'Уже есть аккаунт? Войти'}
         </button>
       </section>
     </main>
